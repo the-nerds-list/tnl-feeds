@@ -1,0 +1,31 @@
+# Scheduled regeneration of the TNL SmartNews feed.
+name: Regenerate SmartNews feed
+
+on:
+  schedule:
+    - cron: "15 */4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - run: >
+          python3 generate_smartnews_feed.py
+          --base-url "https://the-nerds-list.github.io/tnl-feeds/"
+          --out smartnews.xml
+      - run: python3 validate_smartnews_feed.py smartnews.xml
+      - run: |
+          git config user.name "tnl-feed-bot"
+          git config user.email "thenerdslist@gmail.com"
+          git add smartnews.xml
+          git diff --cached --quiet || git commit -m "Regenerate SmartNews feed"
+          git push
